@@ -7,6 +7,6 @@ class SystemStore:
         self.nodes: Dict[str, Node] = {}
         self.tasks = {}
         self.events: List[dict] = []
-
+        self.learning_history: List[dict] = []
 # singleton instance
 system_store = SystemStore()

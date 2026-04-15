@@ -22,5 +22,5 @@ class Task(BaseModel):
     status: str = "waiting"  # waiting / running / completed / failed / cancelled
     assigned_node: str | None = None
 
-    # 🔥 NEW FIELD (FOR PREEMPTION)
+    # FOR PREEMPTION
     is_cancelled: bool = False

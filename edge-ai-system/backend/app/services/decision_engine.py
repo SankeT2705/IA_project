@@ -42,7 +42,7 @@ class DecisionEngine:
         # ---------- QUEUE DELAY ----------
         queue_delay = node.queue_length + node.active_tasks
 
-        # ---------- UTILITY FUNCTION ----------
+        # ---------- BASE UTILITY ----------
         U = (
             self.weights["latency"] * (-latency)
             + self.weights["resource"] * resource_efficiency
@@ -52,6 +52,31 @@ class DecisionEngine:
             + self.weights["trust"] * trust_score
             - self.weights["queue"] * queue_delay
         )
+
+        # ============================================================
+        # 🔥 NEW: LOAD-AWARE CLOUD UTILIZATION (NO BREAKING CHANGE)
+        # ============================================================
+
+        total_load = sum(n.queue_length + n.active_tasks for n in all_nodes.values())
+        node_count = max(len(all_nodes), 1)
+        avg_load = total_load / node_count
+
+        node_load = node.queue_length + node.active_tasks
+
+        # ✅ CASE 1: SYSTEM OVERLOADED → USE CLOUD MORE
+        if avg_load > 3:
+            if node.node_type == "cloud":
+                U += 2.0  # boost cloud usage
+            else:
+                if node_load > avg_load:
+                    U -= 1.5  # penalize overloaded edges
+
+        # ✅ CASE 2: LOCAL EDGE OVERLOAD → SHIFT TO CLOUD
+        if node.node_type == "edge" and node_load > 5:
+            U -= 2.0  # strong penalty
+
+        if node.node_type == "cloud" and node_load < avg_load:
+            U += 1.0  # encourage cloud usage
 
         return U
 

@@ -5,6 +5,8 @@ import ChartsPanel from "../components/ChartsPanel";
 import Alerts from "../components/Alerts";
 import TaskFlow from "../components/TaskFlow";
 import PreemptionPanel from "../components/PreemptionPanel";
+import LearningPanel from "../components/LearningPanel";
+import RLPanel from "../components/RLPanel";
 function StatBar({ nodes }) {
   const totalRunning = Object.values(nodes).reduce((s, n) => s + n.running, 0);
   const totalQueued = Object.values(nodes).reduce((s, n) => s + n.queue, 0);
@@ -118,6 +120,14 @@ export default function Dashboard() {
         <PreemptionPanel />
       </div>
       <ChartsPanel nodes={nodes} />
+
+      <div style={{ marginTop: "16px" }}>
+  <LearningPanel />
     </div>
+    <div style={{ marginTop: "16px" }}>
+  <RLPanel />
+</div>
+    </div>
+
   );
 }

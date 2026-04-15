@@ -8,7 +8,7 @@ from app.core.simulation import run_simulation
 app = FastAPI(title="Adaptive Edge AI System")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # allow frontend
+    allow_origins=["*"],#allow frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

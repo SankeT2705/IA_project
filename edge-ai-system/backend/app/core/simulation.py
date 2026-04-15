@@ -1,4 +1,6 @@
 import time
+import random
+
 from app.utils.system_store import system_store
 from app.models.node import Node
 from app.core.queue_manager import TaskQueue
@@ -14,56 +16,60 @@ from app.services.learning import LearningModule
 from app.services.decision_engine import DecisionEngine
 
 
+# 🔥 DYNAMIC NODE CREATION
+def create_nodes():
+    nodes = {}
+
+    num_edges = random.randint(2, 6)
+
+    for i in range(num_edges):
+        node_id = f"edge_{i+1}"
+
+        nodes[node_id] = Node(
+            node_id=node_id,
+            node_type="edge",
+            cpu_capacity=random.randint(6, 12),
+            memory_capacity=random.randint(6, 12),
+            energy_level=100,
+            max_slots=random.randint(2, 4)
+        )
+
+    nodes["cloud"] = Node(
+        node_id="cloud",
+        node_type="cloud",
+        cpu_capacity=20,
+        memory_capacity=20,
+        energy_level=200,
+        max_slots=5
+    )
+
+    print(f"\n🌐 Created {num_edges} edge nodes + 1 cloud\n")
+    return nodes
+
+
 def run_simulation():
     try:
-        # ----------- CREATE NODES -----------
-        nodes = {
-            "edge_1": Node(
-                node_id="edge_1",
-                node_type="edge",
-                cpu_capacity=10,
-                memory_capacity=10,
-                energy_level=100,
-                max_slots=2
-            ),
-            "edge_2": Node(
-                node_id="edge_2",
-                node_type="edge",
-                cpu_capacity=8,
-                memory_capacity=8,
-                energy_level=100,
-                max_slots=2
-            ),
-            "cloud": Node(
-                node_id="cloud",
-                node_type="cloud",
-                cpu_capacity=20,
-                memory_capacity=20,
-                energy_level=200,
-                max_slots=4
-            )
-        }
+        # 🔥 RESET SYSTEM (IMPORTANT FIX)
+        system_store.nodes = {}
+        system_store.tasks = {}
+        system_store.events = []
 
-        # 🔥 expose nodes to API
+        # 🔥 NODE CREATION DELAY (FOR DEMO)
+        print("⏳ Initializing system...")
+        time.sleep(7)
+
+        nodes = create_nodes()
         system_store.nodes = nodes
 
-        # ----------- COMMUNICATION BUS -----------
+        # ----------- INIT COMPONENTS -----------
         bus = CommunicationBus()
 
-        # ----------- DECISION ENGINE -----------
         decision_engine = DecisionEngine()
-
-        # ----------- LEARNING MODULE -----------
         learning_module = LearningModule(decision_engine)
-
-        # ----------- TRUST MANAGER -----------
         trust_manager = TrustManager(nodes, bus, learning_module)
-
-        # ----------- RESOURCE MANAGER -----------
-        resource_manager = ResourceManager(nodes, bus)
-        resource_manager.engine = decision_engine  # shared engine
-
-        # ----------- SCHEDULERS -----------
+        
+        resource_manager = ResourceManager(nodes, bus,decision_engine)
+        resource_manager.learning_module = learning_module
         schedulers = {}
 
         for node_id, node in nodes.items():
@@ -73,16 +79,18 @@ def run_simulation():
 
             schedulers[node_id] = scheduler
 
-        print("🚀 Intelligent Adaptive Multi-Agent System Started...\n")
+        print("🚀 Intelligent Adaptive Multi-Agent System Started\n")
 
         # ----------- MAIN LOOP -----------
         while True:
 
-            # 🔹 1. Generate tasks
-            tasks = generate_task_batch(5)
+            # 🔥 RANDOM TASK GENERATION (3–10)
+            batch_size = random.randint(3, 10)
+            tasks = generate_task_batch(batch_size)
+
             print(f"\n🆕 Generated {len(tasks)} tasks")
 
-            # 🔹 2. Allocate tasks
+            # ----------- ALLOCATION -----------
             for task in tasks:
                 node, score = resource_manager.allocate_task(task)
 
@@ -90,26 +98,35 @@ def run_simulation():
                     print(f"⚠ No node available for task {task.task_id[:6]}")
                     continue
 
-                # 🔥 STORE TASK FOR API
                 system_store.tasks[task.task_id] = task
-
                 schedulers[node.node_id].add_task(task)
 
                 print(
-                    f"🤖 RM → Task {task.task_id[:6]} → {node.node_id} | Score: {round(score,2)}"
+                    f"🤖 RM → Task {task.task_id[:6]} → {node.node_id} "
+                    f"| Utility Score: {round(score, 3)}"
                 )
 
-            # 🔹 3. Execute tasks
+            # ----------- EXECUTION -----------
             for scheduler in schedulers.values():
                 scheduler.schedule()
 
-            # 🔹 4. System state
+            # ----------- SYSTEM STATE -----------
             print("\n📊 SYSTEM STATE")
+            print("-" * 60)
+
             for node_id, node in nodes.items():
+                load = node.active_tasks + node.queue_length
+
                 print(
-                    f"{node_id} | Running: {node.active_tasks} | Queue: {node.queue_length} | "
-                    f"Trust: {round(node.trust_score,2)} | Failure: {round(node.failure_rate,2)}"
+                    f"{node_id:<8} | "
+                    f"Run: {node.active_tasks:<2} | "
+                    f"Queue: {node.queue_length:<2} | "
+                    f"Load: {load:<2} | "
+                    f"Trust: {round(node.trust_score,2):<4} | "
+                    f"Fail: {round(node.failure_rate,2)}"
                 )
+
+            print("-" * 60)
 
             time.sleep(3)
 

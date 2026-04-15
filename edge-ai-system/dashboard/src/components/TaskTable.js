@@ -1,9 +1,10 @@
 export default function TaskTable({ tasks }) {
   const statusMap = {
-    completed: { badge: "badge-green", icon: "✓", label: "Completed" },
-    failed:    { badge: "badge-red",   icon: "✗", label: "Failed"    },
-    running:   { badge: "badge-amber", icon: "⟳", label: "Running"   },
-    pending:   { badge: "badge-blue",  icon: "◌", label: "Pending"   },
+    completed: { badge: "badge-green",  icon: "✓", label: "Completed" },
+    failed:    { badge: "badge-red",    icon: "✗", label: "Failed" },
+    running:   { badge: "badge-amber",  icon: "⟳", label: "Running" },
+    waiting:   { badge: "badge-blue",   icon: "◌", label: "Waiting" },   // 🔥 FIXED
+    cancelled: { badge: "badge-blue",   icon: "⛔", label: "Cancelled" }, // 🔥 NEW
   };
 
   return (
@@ -35,13 +36,18 @@ export default function TaskTable({ tasks }) {
           <tbody>
             {tasks.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: "center", color: "#4a5568", padding: "24px" }}>
+                <td colSpan={4} style={{
+                  textAlign: "center",
+                  color: "#4a5568",
+                  padding: "24px"
+                }}>
                   No tasks found
                 </td>
               </tr>
             ) : (
               tasks.map(t => {
-                const s = statusMap[t.status] || statusMap.pending;
+                const s = statusMap[t.status] || statusMap.waiting;
+
                 return (
                   <tr key={t.task_id} className="fade-in">
                     <td>
@@ -56,20 +62,23 @@ export default function TaskTable({ tasks }) {
                         {t.task_id.slice(0, 8)}…
                       </span>
                     </td>
+
                     <td>
                       <span className={`badge ${s.badge}`}>
                         {s.icon} {s.label}
                       </span>
                     </td>
+
                     <td>
                       <span style={{
                         fontFamily: "'IBM Plex Mono', monospace",
                         fontSize: "12px",
                         color: "#0ea5e9"
                       }}>
-                        {t.node}
+                        {t.node || "—"} {/* 🔥 fallback */}
                       </span>
                     </td>
+
                     <td style={{ color: "#4a5568", fontSize: "12px" }}>
                       {t.created_at
                         ? new Date(t.created_at).toLocaleTimeString()

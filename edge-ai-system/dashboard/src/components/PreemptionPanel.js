@@ -100,10 +100,12 @@ function PreemptionAnimation({ event, onDone }) {
 }
 
 // ── Sparkline ────────────────────────────────────────────────────────────────
-function Sparkline({ data, color }) {
-  if (data.length < 2) return null;
+ function Sparkline({ data = [], color }) {
+  if (!data || data.length < 2) return null;
+
   const max = Math.max(...data, 1);
   const w = 80, h = 28;
+
   const pts = data.map((v, i) => {
     const x = (i / (data.length - 1)) * w;
     const y = h - (v / max) * h;
@@ -121,7 +123,6 @@ function Sparkline({ data, color }) {
         strokeLinejoin="round"
         opacity="0.8"
       />
-      {/* Last dot */}
       {(() => {
         const last = data[data.length - 1];
         const x = w;
@@ -131,7 +132,6 @@ function Sparkline({ data, color }) {
     </svg>
   );
 }
-
 // ── Main Panel ────────────────────────────────────────────────────────────────
 export default function PreemptionPanel() {
   const [events,      setEvents]      = useState([]);
@@ -253,7 +253,7 @@ export default function PreemptionPanel() {
                 }}>{count}</div>
               </div>
               <Sparkline
-                data={history.map(() => Math.floor(Math.random() * count + 1))}
+                data={history.map(() => count)}
                 color={nodeColors[node] || "#a78bfa"}
               />
             </div>

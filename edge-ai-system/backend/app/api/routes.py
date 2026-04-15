@@ -68,3 +68,8 @@ def get_all_tasks():
 @router.get("/events")
 def get_events():
     return system_store.events[-20:]  # last 20 events
+
+
+@router.get("/learning")
+def get_learning():
+    return system_store.learning_history

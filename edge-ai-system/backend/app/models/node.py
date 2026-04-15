@@ -23,5 +23,5 @@ class Node(BaseModel):
 
     latency_to_others: Dict[str, float] = Field(default_factory=dict)
 
-    # 🔥 NEW FIELD (FOR PREEMPTION)
+    # FOR PREEMPTION
     active_task_list: List[Task] = Field(default_factory=list)
