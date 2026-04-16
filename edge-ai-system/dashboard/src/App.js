@@ -1,17 +1,20 @@
-import { useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
+import "../src/index.css";
 
-function App() {
-  const [page, setPage] = useState("dashboard");
-
+export default function App() {
   return (
-    <div className="app-shell">
-      <Navbar setPage={setPage} currentPage={page} />
-      {page === "dashboard" ? <Dashboard /> : <Tasks />}
-    </div>
+    <BrowserRouter>
+      <div className="app-shell">
+        <Navbar />
+        <Routes>
+          <Route path="/"      element={<Dashboard />} />
+          <Route path="/tasks" element={<Tasks />} />
+          {/* Extend: /nodes, /rl can be added here */}
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
-
-export default App;

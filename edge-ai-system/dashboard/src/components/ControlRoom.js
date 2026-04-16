@@ -1,197 +1,216 @@
 import { useEffect, useState } from "react";
 
-export default function ControlRoom({ nodes }) {
-  const [prevNodes, setPrevNodes] = useState({});
+function MiniSparkline({ values = [], color }) {
+  if (values.length < 2) return null;
+  const max = Math.max(...values, 1);
+  const w = 64, h = 24;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * w;
+    const y = h - (v / max) * h * 0.85 - 2;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
 
+  return (
+    <svg width={w} height={h} style={{ display: "block", overflow: "visible" }}>
+      <polyline
+        points={pts}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.75"
+      />
+    </svg>
+  );
+}
+
+export default function ControlRoom({ nodes = {}, prevNodes = {} }) {
+  const [loadHistory, setLoadHistory] = useState({});
+
+  // Track load history per node for sparklines
   useEffect(() => {
-    setPrevNodes(nodes);
+    if (Object.keys(nodes).length === 0) return;
+    setLoadHistory(prev => {
+      const next = { ...prev };
+      Object.entries(nodes).forEach(([id, node]) => {
+        const load = (node.running || 0) + (node.queue || 0);
+        next[id] = [...(prev[id] || []).slice(-12), load];
+      });
+      return next;
+    });
   }, [nodes]);
 
   const getStatus = (load) => {
-    if (load < 2) return { label: "Healthy", cls: "healthy", color: "#00d68f" };
-    if (load < 4) return { label: "Warning", cls: "warning", color: "#f59e0b" };
-    return { label: "Critical", cls: "critical", color: "#f43f5e" };
+    if (load < 2) return { label: "Healthy",  cls: "healthy",  color: "var(--neon-green)", badge: "badge-green" };
+    if (load < 4) return { label: "Warning",  cls: "warning",  color: "var(--neon-amber)", badge: "badge-amber" };
+    return           { label: "Critical", cls: "critical", color: "var(--neon-red)",   badge: "badge-red"   };
   };
 
-  // 🔥 Dynamic icon (no hardcoding)
-  const getIcon = (id) => {
+  const getNodeIcon = (id) => {
     if (id.includes("cloud")) return "☁";
-    return "◈";
+    if (id.includes("edge"))  return "◈";
+    if (id.includes("iot"))   return "⬡";
+    return "◉";
   };
 
-  // 🔥 Heatmap intensity (based on load)
-  const getHeatColor = (load) => {
-    if (load < 2) return "rgba(0,214,143,0.08)";
-    if (load < 4) return "rgba(245,158,11,0.10)";
-    return "rgba(244,63,94,0.12)";
+  const getHeatBg = (load) => {
+    if (load < 2) return "rgba(16,185,129,0.05)";
+    if (load < 4) return "rgba(245,158,11,0.07)";
+    return "rgba(239,68,68,0.08)";
   };
+
+  const entries = Object.entries(nodes);
 
   return (
     <div className="card">
       <div className="card-header">
         <span className="card-title">
-          <span className="card-title-icon">◈</span>
-          Node Status
+          ◈ Node Status
         </span>
-        <span className="badge badge-green">
-          <span className="pulse pulse-green" style={{ width: 6, height: 6 }} />
-          Live
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--text-muted)" }}>
+            {entries.length} nodes
+          </span>
+          <span className="badge badge-green">
+            <span className="pulse pulse-green" />
+            Live
+          </span>
+        </div>
       </div>
 
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-        gap: "12px"
-      }}>
-        {Object.entries(nodes).map(([id, node]) => {
-          const load = node.running + node.queue;
-          const status = getStatus(load);
-          const pct = Math.min(load * 20, 100);
+      {entries.length === 0 ? (
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "160px",
+          color: "var(--text-muted)",
+          gap: "10px",
+        }}>
+          <div style={{ fontSize: "28px", opacity: 0.3 }}>◈</div>
+          <div style={{ fontSize: "13px" }}>Waiting for node data…</div>
+        </div>
+      ) : (
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))",
+          gap: "12px",
+        }}>
+          {entries.map(([id, node]) => {
+            const load    = (node.running || 0) + (node.queue || 0);
+            const status  = getStatus(load);
+            const pct     = Math.min(load * 20, 100);
+            const trustPct = Math.round((node.trust || 0) * 100);
+            const isNew   = !prevNodes[id];
+            const history = loadHistory[id] || [];
 
-          // 🔥 Detect new node (for animation)
-          const isNew = !prevNodes[id];
+            return (
+              <div
+                key={id}
+                className={`node-card ${status.cls}${isNew ? " fade-in" : ""}`}
+                style={{ background: getHeatBg(load) }}
+              >
+                {/* Header row */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
+                  <div>
+                    <div style={{
+                      fontSize: "20px",
+                      marginBottom: "5px",
+                      filter: `drop-shadow(0 0 4px ${status.color}66)`,
+                    }}>
+                      {getNodeIcon(id)}
+                    </div>
+                    <div style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      color: "var(--text-primary)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                    }}>
+                      {id.replace(/_/g, " ")}
+                    </div>
+                  </div>
+                  <span className={`badge ${status.badge}`}>{status.label}</span>
+                </div>
 
-          return (
-            <div
-              key={id}
-              className={`node-card ${status.cls} ${isNew ? "fade-in" : ""}`}
-              style={{
-                background: getHeatColor(load), // 🔥 heatmap
-                transition: "all 0.3s ease"
-              }}
-            >
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                marginBottom: "12px"
-              }}>
+                {/* Running / Queue */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "14px" }}>
+                  <div>
+                    <div style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "22px",
+                      fontWeight: 700,
+                      color: "var(--neon-green)",
+                      lineHeight: 1,
+                    }}>
+                      {node.running || 0}
+                    </div>
+                    <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: "2px" }}>
+                      Running
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "22px",
+                      fontWeight: 700,
+                      color: "var(--neon-amber)",
+                      lineHeight: 1,
+                    }}>
+                      {node.queue || 0}
+                    </div>
+                    <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: "2px" }}>
+                      Queued
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sparkline */}
+                {history.length >= 2 && (
+                  <div style={{ marginBottom: "12px" }}>
+                    <MiniSparkline values={history} color={status.color} />
+                  </div>
+                )}
+
+                {/* Load bar */}
+                <div style={{ marginBottom: "10px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>Load</span>
+                    <span style={{ fontSize: "10px", fontFamily: "var(--font-mono)", color: status.color }}>
+                      {pct.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{
+                      width: `${pct}%`,
+                      background: `linear-gradient(90deg, ${status.color}55, ${status.color})`,
+                    }} />
+                  </div>
+                </div>
+
+                {/* Trust bar */}
                 <div>
-                  <div style={{ fontSize: "18px", marginBottom: "4px" }}>
-                    {getIcon(id)}
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>Trust</span>
+                    <span style={{ fontSize: "10px", fontFamily: "var(--font-mono)", color: "var(--neon-violet)" }}>
+                      {trustPct}%
+                    </span>
                   </div>
-                  <div style={{
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    color: "#e2e8f0",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em"
-                  }}>
-                    {id.replace("_", " ")}
-                  </div>
-                </div>
-
-                <span className={`badge badge-${
-                  status.cls === "healthy"
-                    ? "green"
-                    : status.cls === "warning"
-                    ? "amber"
-                    : "red"
-                }`}>
-                  {status.label}
-                </span>
-              </div>
-
-              {/* Running / Queue */}
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "8px",
-                marginBottom: "12px"
-              }}>
-                <div>
-                  <div style={{
-                    fontSize: "20px",
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontWeight: 700,
-                    color: "#00d68f"
-                  }}>
-                    {node.running}
-                  </div>
-                  <div style={{
-                    fontSize: "11px",
-                    color: "#8892a4",
-                    textTransform: "uppercase"
-                  }}>
-                    Running
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{
-                    fontSize: "20px",
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontWeight: 700,
-                    color: "#f59e0b"
-                  }}>
-                    {node.queue}
-                  </div>
-                  <div style={{
-                    fontSize: "11px",
-                    color: "#8892a4",
-                    textTransform: "uppercase"
-                  }}>
-                    Queued
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{
+                      width: `${trustPct}%`,
+                      background: "linear-gradient(90deg, rgba(139,92,246,0.4), var(--neon-violet))",
+                    }} />
                   </div>
                 </div>
               </div>
-
-              {/* Load */}
-              <div style={{ marginBottom: "8px" }}>
-                <div style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "4px"
-                }}>
-                  <span style={{ fontSize: "11px", color: "#8892a4" }}>
-                    Load
-                  </span>
-                  <span style={{
-                    fontSize: "11px",
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    color: status.color
-                  }}>
-                    {pct.toFixed(0)}%
-                  </span>
-                </div>
-
-                <div className="progress-track">
-                  <div className="progress-fill" style={{
-                    width: `${pct}%`,
-                    background: `linear-gradient(90deg, ${status.color}99, ${status.color})`
-                  }} />
-                </div>
-              </div>
-
-              {/* Trust */}
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between"
-              }}>
-                <span style={{ fontSize: "11px", color: "#8892a4" }}>
-                  Trust
-                </span>
-                <span style={{
-                  fontSize: "12px",
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  color: "#a78bfa"
-                }}>
-                  {(node.trust * 100).toFixed(0)}%
-                </span>
-              </div>
-
-              <div className="progress-track">
-                <div className="progress-fill" style={{
-                  width: `${node.trust * 100}%`,
-                  background: "linear-gradient(90deg, #7c3aed88, #a78bfa)"
-                }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

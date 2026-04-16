@@ -7,7 +7,7 @@ class ResourceManager:
         self.engine = engine
         self.bus = bus
 
-        self.learning_module = None  # 🔥 RL attach later
+        self.learning_module = None  #  RL attach later
 
         bus.subscribe(self)
 
@@ -17,11 +17,11 @@ class ResourceManager:
 
         for node in self.nodes.values():
 
-            # ❌ skip full nodes
+            # skip full nodes
             if node.active_tasks >= node.max_slots:
                 continue
 
-            # ✅ FIX: use compute_utility (correct function)
+            # FIX: use compute_utility (correct function)
             heuristic_score = self.engine.compute_utility(
                 task, node, self.nodes
             )
@@ -48,4 +48,4 @@ class ResourceManager:
 
             if node_id in self.nodes:
                 self.nodes[node_id].trust_score = 0
-                print(f"🤖 RM updated: {node_id} avoided")
+                print(f"==> RM updated: {node_id} avoided")

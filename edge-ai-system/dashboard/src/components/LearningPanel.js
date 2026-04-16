@@ -1,70 +1,112 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid
-} from "recharts";
-
-const COLORS = {
-  latency: "#00d68f",
-  resource: "#0ea5e9",
-  energy: "#f59e0b",
-  success: "#22c55e",
-  trust: "#a78bfa",
-  queue: "#f43f5e"
-};
+import { getLearning } from "../services/api";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function LearningPanel() {
-  const [data, setData] = useState([]);
+  const [data,  setData]  = useState([]);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetch = async () => {
       try {
-        const res = await axios.get("http://127.0.0.1:8000/learning");
-
-        const formatted = res.data.map(d => ({
-          time: new Date(d.time * 1000).toLocaleTimeString(),
-          ...d
-        }));
-
-        setData(formatted);
-      } catch (err) {
-        console.error("Learning API Error:", err);
+        const res = await getLearning();
+        if (Array.isArray(res?.data)) {
+          setData(res.data.slice(-30));
+          setError(false);
+        }
+      } catch {
+        setError(true);
       }
     };
-
-    fetchData();
-    const interval = setInterval(fetchData, 2000);
-
-    return () => clearInterval(interval);
+    fetch();
+    const t = setInterval(fetch, 2500);
+    return () => clearInterval(t);
   }, []);
+
+  const axisStyle = {
+    fill: "#3d506e",
+    fontSize: 10,
+    fontFamily: "'JetBrains Mono', monospace",
+  };
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div style={{
+        background: "#131c2e",
+        border: "1px solid rgba(120,160,255,0.18)",
+        borderRadius: "8px",
+        padding: "10px 14px",
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: "11px",
+      }}>
+        {payload.map(p => (
+          <div key={p.dataKey} style={{
+            color: p.color,
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "16px",
+            marginBottom: "2px",
+          }}>
+            <span style={{ color: "#7a90b8" }}>{p.dataKey}</span>
+            <span style={{ fontWeight: 600 }}>
+              {typeof p.value === "number" ? p.value.toFixed(3) : p.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="card">
       <div className="card-header">
-        <span className="card-title">🧠 Learning Evolution</span>
-        <span className="badge badge-blue">Adaptive</span>
+        <span className="card-title">◈ Learning Metrics</span>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          {error && <span className="badge badge-amber">⚠ No Data</span>}
+          <span className="badge badge-violet">
+            <span className="pulse pulse-cyan" />
+            Training
+          </span>
+        </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={260}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-          <XAxis dataKey="time" tick={{ fill: "#4a5568", fontSize: 11 }} />
-          <YAxis tick={{ fill: "#4a5568", fontSize: 11 }} />
-          <Tooltip />
-          <Legend />
-
-          {Object.keys(COLORS).map(key => (
-            <Line
-              key={key}
-              type="monotone"
-              dataKey={key}
-              stroke={COLORS[key]}
-              strokeWidth={2}
-              dot={false}
+      {data.length === 0 ? (
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "120px",
+          color: "var(--text-muted)",
+          gap: "10px",
+          flexDirection: "column",
+        }}>
+          <div style={{ fontSize: "24px", opacity: 0.2 }}>◈</div>
+          <div style={{ fontSize: "13px" }}>
+            {error ? "Learning API unavailable" : "Collecting training data…"}
+          </div>
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(120,160,255,0.04)" />
+            <XAxis dataKey="time" tick={axisStyle} interval="preserveStartEnd" />
+            <YAxis tick={axisStyle} />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              wrapperStyle={{
+                fontSize: "11px",
+                fontFamily: "'JetBrains Mono', monospace",
+                color: "#7a90b8",
+              }}
             />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+            <Line dataKey="latency"  stroke="#22d3ee" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            <Line dataKey="resource" stroke="#8b5cf6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            <Line dataKey="trust"    stroke="#f59e0b" strokeWidth={2} dot={false} strokeDasharray="5 2" activeDot={{ r: 4 }} />
+            <Line dataKey="queue"    stroke="#10b981" strokeWidth={2} dot={false} strokeDasharray="2 2" activeDot={{ r: 4 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }

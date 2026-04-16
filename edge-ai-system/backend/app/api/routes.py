@@ -51,25 +51,71 @@ def get_task_status(task_id: str):
     }
 
 
-# ----------- ALL TASKS -----------
+# ----------- ALL TASKS (ENHANCED) -----------
 @router.get("/tasks")
 def get_all_tasks():
     return [
         {
             "task_id": t.task_id,
             "status": t.status,
-            "node": t.assigned_node
+            "node": t.assigned_node,
+            "created_at": t.arrival_time,
+            "source": getattr(t, "source_device", None)  # 🔥 NEW
         }
         for t in system_store.tasks.values()
     ]
 
 
-# 🔥 NEW — PREEMPTION EVENTS (FOR DASHBOARD)
+# ----------- EVENTS (PREEMPTION ETC.) -----------
 @router.get("/events")
 def get_events():
-    return system_store.events[-20:]  # last 20 events
+    return system_store.events[-20:]
 
 
+# ----------- LEARNING DATA -----------
 @router.get("/learning")
 def get_learning():
     return system_store.learning_history
+
+
+# ----------- CONFIG -----------
+@router.get("/config")
+def get_config():
+    return {
+        "simulation_interval": getattr(system_store, "simulation_interval", 12)
+    }
+
+
+# ============================================================
+# 🔥 NEW — SYSTEM METRICS (STEP 4 CORE)
+# ============================================================
+
+@router.get("/metrics")
+def get_system_metrics():
+    total = system_store.total_tasks
+    completed = system_store.completed_tasks
+    failed = system_store.failed_tasks
+
+    success_rate = (completed / total) * 100 if total > 0 else 0
+    failure_rate = (failed / total) * 100 if total > 0 else 0
+
+    return {
+        "total_tasks": total,
+        "completed_tasks": completed,
+        "failed_tasks": failed,
+        "success_rate": round(success_rate, 2),
+        "failure_rate": round(failure_rate, 2)
+    }
+
+# ----------- SIMULATION CONTROL -----------
+
+@router.post("/simulation/pause")
+def pause_simulation():
+    system_store.simulation_running = False
+    return {"status": "paused"}
+
+
+@router.post("/simulation/play")
+def play_simulation():
+    system_store.simulation_running = True
+    return {"status": "running"}

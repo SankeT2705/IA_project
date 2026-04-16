@@ -24,3 +24,4 @@ class Task(BaseModel):
 
     # FOR PREEMPTION
     is_cancelled: bool = False
+    source_device: str | None = None

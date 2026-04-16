@@ -15,7 +15,7 @@ class TrustManager:
         node.trust_score = max(0, min(1, node.trust_score))
         node.failure_rate = max(0, min(1, node.failure_rate))
 
-        # 🔥 CALL LEARNING MODULE
+        # CALL LEARNING MODULE
         if self.learning_module:
             self.learning_module.update_weights(node, task)
 
@@ -29,6 +29,6 @@ class TrustManager:
             "node_id": node.node_id
         }
 
-        print(f"🚨 ALERT: {node.node_id} marked as MALICIOUS")
+        print(f" ALERT: {node.node_id} marked as MALICIOUS")
 
         self.bus.broadcast(message)

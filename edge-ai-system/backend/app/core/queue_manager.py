@@ -8,7 +8,7 @@ class TaskQueue:
         self.counter = itertools.count()
 
     def add_task(self, task):
-        # 🔥 higher priority first → use negative
+        #higher priority first → use negative
         self.queue.put((-task.priority, next(self.counter), task))
 
     def get_task(self):
@@ -19,7 +19,7 @@ class TaskQueue:
     def size(self):
         return self.queue.qsize()
 
-    # ✅ SAFE PEEK (IMPORTANT FIX)
+    # SAFE PEEK (IMPORTANT FIX)
     def peek(self):
         if not self.queue.empty():
             return self.queue.queue[0][2]  # access internal heap

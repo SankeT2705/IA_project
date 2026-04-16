@@ -7,7 +7,7 @@ class CloudController:
         self.nodes = nodes
         self.bus = bus
 
-        # 🔥 central intelligence
+        #  central intelligence
         self.resource_manager = ResourceManager(nodes, bus)
 
     def allocate_task(self, task):

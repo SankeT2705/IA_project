@@ -1,4 +1,5 @@
 import random
+from app.utils.system_store import system_store
 
 
 class DecisionEngine:
@@ -33,8 +34,13 @@ class DecisionEngine:
         # ---------- SUCCESS RATE ----------
         success_rate = 1 - node.failure_rate
 
-        # ---------- MIGRATION COST ----------
-        migration_cost = task.data_size * latency * 0.01
+        # ---------- MIGRATION COST (UPDATED) ----------
+        if node.node_type == "cloud":
+            migration_cost = task.data_size * latency * 0.05
+        elif node.node_type == "edge":
+            migration_cost = task.data_size * latency * 0.02
+        else:  # IoT
+            migration_cost = 0
 
         # ---------- TRUST ----------
         trust_score = node.trust_score
@@ -54,7 +60,7 @@ class DecisionEngine:
         )
 
         # ============================================================
-        # 🔥 NEW: LOAD-AWARE CLOUD UTILIZATION (NO BREAKING CHANGE)
+        # 🔥 LOAD-AWARE CLOUD UTILIZATION
         # ============================================================
 
         total_load = sum(n.queue_length + n.active_tasks for n in all_nodes.values())
@@ -63,29 +69,64 @@ class DecisionEngine:
 
         node_load = node.queue_length + node.active_tasks
 
-        # ✅ CASE 1: SYSTEM OVERLOADED → USE CLOUD MORE
         if avg_load > 3:
             if node.node_type == "cloud":
-                U += 2.0  # boost cloud usage
+                U += 2.0
             else:
                 if node_load > avg_load:
-                    U -= 1.5  # penalize overloaded edges
+                    U -= 1.5
 
-        # ✅ CASE 2: LOCAL EDGE OVERLOAD → SHIFT TO CLOUD
         if node.node_type == "edge" and node_load > 5:
-            U -= 2.0  # strong penalty
+            U -= 2.0
 
         if node.node_type == "cloud" and node_load < avg_load:
-            U += 1.0  # encourage cloud usage
+            U += 1.0
+
+        # ============================================================
+        # 🔥 IoT LOCAL EXECUTION
+        # ============================================================
+
+        if node.node_type == "iot":
+            if task.cpu_required <= 2:
+                U += 2.0
+            else:
+                U -= 2.5
+
+        # ============================================================
+        # 🔥 NETWORK-AWARE DECISION (NEW)
+        # ============================================================
+
+        network = system_store.network_state
+
+        if node.node_type == "cloud":
+            if network["congestion"]:
+                U -= 3.0   # avoid cloud when network bad
+
+        # ============================================================
+        # 🔥 CLOUD DOMINATION CONTROL (IMPORTANT FIX)
+        # ============================================================
+
+        if node.node_type == "cloud":
+            if task.cpu_required < 4 and not network["congestion"]:
+                U -= 2.5   # avoid unnecessary cloud use
+
+        if node.node_type == "edge" and task.cpu_required < 5:
+            U += 1.5   # encourage edge
 
         return U
 
     def get_latency(self, task, node, all_nodes):
-        # simple simulated latency
-        base_latency = random.uniform(1, 10)
+        base_latency = random.uniform(1, 5)
+
+        if node.node_type == "iot":
+            return base_latency
+
+        if node.node_type == "edge":
+            return base_latency + 1
 
         if node.node_type == "cloud":
-            return base_latency + 5  # cloud slower
+            net_latency = system_store.network_state["edge_to_cloud_latency"]
+            return base_latency + net_latency
 
         return base_latency
 

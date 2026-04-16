@@ -14,7 +14,7 @@ class Scheduler:
         self.queue.add_task(task)
         self.node.queue_length += 1
 
-    # 🔥 PREEMPTION LOGIC + EVENT LOGGING
+    #  PREEMPTION LOGIC + EVENT LOGGING
     def preempt_if_needed(self, new_task):
         # No running tasks → nothing to preempt
         if not self.node.active_task_list:
@@ -30,10 +30,10 @@ class Scheduler:
                 f"(P{lowest_task.priority}) for {new_task.task_id[:6]} (P{new_task.priority})"
             )
 
-            # 🔥 Trigger cancellation
+            #  Trigger cancellation
             lowest_task.is_cancelled = True
 
-            # 🔥 STORE EVENT (FOR DASHBOARD)
+            # STORE EVENT (FOR DASHBOARD)
             system_store.events.append({
                 "type": "preemption",
                 "old_task": lowest_task.task_id,
@@ -44,7 +44,7 @@ class Scheduler:
     def schedule(self):
         while self.queue.size() > 0:
 
-            # 🔥 Allow scheduling even if full (for preemption)
+            # Allow scheduling even if full (for preemption)
             if self.node.active_tasks >= self.node.max_slots:
                 next_task = self.queue.peek()
 
@@ -60,7 +60,7 @@ class Scheduler:
 
             self.node.queue_length -= 1
 
-            # 🔥 Preemption before execution
+            #  Preemption before execution
             self.preempt_if_needed(task)
 
             self.worker.execute_task(task)

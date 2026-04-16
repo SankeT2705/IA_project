@@ -1,95 +1,80 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 
-// ── Animated swap visualization ──────────────────────────────────────────────
 function PreemptionAnimation({ event, onDone }) {
-  const [phase, setPhase] = useState("evict"); // evict → transit → settle → done
+  const [phase, setPhase] = useState("evict");
+  const nodeColors = { edge_1: "#22d3ee", edge_2: "#3b82f6", cloud: "#f59e0b" };
+  const nodeColor = nodeColors[event.node] || "#8b5cf6";
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase("transit"), 600);
-    const t2 = setTimeout(() => setPhase("settle"),  1300);
-    const t3 = setTimeout(() => { setPhase("done"); onDone(); }, 2200);
+    const t1 = setTimeout(() => setPhase("transit"), 500);
+    const t2 = setTimeout(() => setPhase("settle"),  1200);
+    const t3 = setTimeout(() => { setPhase("done"); onDone(); }, 2000);
     return () => [t1, t2, t3].forEach(clearTimeout);
   }, []);
-
-  const nodeColor = { edge_1: "#00d68f", edge_2: "#0ea5e9", cloud: "#f59e0b" }[event.node] || "#a78bfa";
 
   return (
     <div style={{
       position: "relative",
-      height: "48px",
-      background: "rgba(249,115,22,0.05)",
+      height: "44px",
+      background: "rgba(245,158,11,0.05)",
       borderRadius: "8px",
-      border: "1px solid rgba(249,115,22,0.2)",
+      border: "1px solid rgba(245,158,11,0.18)",
       overflow: "hidden",
       display: "flex",
       alignItems: "center",
       padding: "0 14px",
       gap: "10px",
     }}>
-      {/* Shimmer sweep */}
       <div style={{
-        position: "absolute",
-        inset: 0,
-        background: "linear-gradient(90deg, transparent, rgba(249,115,22,0.08), transparent)",
-        transform: phase === "transit" ? "translateX(100%)" : "translateX(-100%)",
-        transition: "transform 0.7s ease",
-      }} />
-
-      {/* Old task chip */}
-      <div style={{
-        fontFamily: "'IBM Plex Mono', monospace",
-        fontSize: "12px",
-        padding: "3px 10px",
-        borderRadius: "5px",
-        background: "rgba(244,63,94,0.15)",
-        border: "1px solid rgba(244,63,94,0.3)",
-        color: "#f43f5e",
-        transform: phase === "evict" ? "scale(1)" : phase === "transit" ? "scale(0.85) translateX(-8px)" : "scale(0.75) translateX(-12px)",
-        opacity: phase === "settle" || phase === "done" ? 0.4 : 1,
-        transition: "all 0.5s cubic-bezier(0.4,0,0.2,1)",
-        whiteSpace: "nowrap",
-      }}>
-        ✗ {event.old_task.slice(0, 8)}
-      </div>
-
-      {/* Arrow */}
-      <div style={{
-        fontSize: "16px",
-        color: "#f97316",
-        opacity: phase === "evict" ? 0 : 1,
-        transform: phase === "evict" ? "scaleX(0)" : "scaleX(1)",
-        transition: "all 0.35s ease 0.4s",
-        flexShrink: 0,
-      }}>→</div>
-
-      {/* New task chip */}
-      <div style={{
-        fontFamily: "'IBM Plex Mono', monospace",
-        fontSize: "12px",
-        padding: "3px 10px",
-        borderRadius: "5px",
-        background: phase === "settle" || phase === "done"
-          ? "rgba(0,214,143,0.15)"
-          : "rgba(255,255,255,0.05)",
-        border: `1px solid ${phase === "settle" || phase === "done" ? "rgba(0,214,143,0.35)" : "rgba(255,255,255,0.1)"}`,
-        color: phase === "settle" || phase === "done" ? "#00d68f" : "#8892a4",
-        transform: phase === "settle" || phase === "done" ? "scale(1.05)" : "scale(0.9)",
-        transition: "all 0.45s cubic-bezier(0.4,0,0.2,1) 0.5s",
-        whiteSpace: "nowrap",
-      }}>
-        ✓ {event.new_task.slice(0, 8)}
-      </div>
-
-      {/* Node badge */}
-      <div style={{
-        marginLeft: "auto",
-        fontFamily: "'IBM Plex Mono', monospace",
+        fontFamily: "var(--font-mono)",
         fontSize: "11px",
         padding: "2px 8px",
         borderRadius: "4px",
-        background: `${nodeColor}18`,
-        border: `1px solid ${nodeColor}40`,
+        background: "rgba(239,68,68,0.12)",
+        border: "1px solid rgba(239,68,68,0.25)",
+        color: "var(--neon-red)",
+        transform: phase === "evict" ? "scale(1)" : "scale(0.85) translateX(-6px)",
+        opacity: phase === "settle" ? 0.35 : 1,
+        transition: "all 0.45s ease",
+        whiteSpace: "nowrap",
+        flexShrink: 0,
+      }}>
+        ✗ {(event.old_task || "").slice(0, 10)}
+      </div>
+
+      <div style={{
+        fontSize: "14px",
+        color: "var(--neon-amber)",
+        opacity: phase === "evict" ? 0 : 1,
+        transition: "opacity 0.3s ease 0.3s",
+        flexShrink: 0,
+      }}>→</div>
+
+      <div style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: "11px",
+        padding: "2px 8px",
+        borderRadius: "4px",
+        background: phase === "settle" ? "rgba(16,185,129,0.12)" : "rgba(255,255,255,0.04)",
+        border: `1px solid ${phase === "settle" ? "rgba(16,185,129,0.28)" : "rgba(255,255,255,0.08)"}`,
+        color: phase === "settle" ? "var(--neon-green)" : "var(--text-secondary)",
+        transform: phase === "settle" ? "scale(1.04)" : "scale(0.9)",
+        transition: "all 0.4s ease 0.4s",
+        whiteSpace: "nowrap",
+        flexShrink: 0,
+      }}>
+        ✓ {(event.new_task || "").slice(0, 10)}
+      </div>
+
+      <div style={{
+        marginLeft: "auto",
+        fontFamily: "var(--font-mono)",
+        fontSize: "10px",
+        padding: "2px 7px",
+        borderRadius: "4px",
+        background: `${nodeColor}14`,
+        border: `1px solid ${nodeColor}30`,
         color: nodeColor,
         flexShrink: 0,
       }}>
@@ -99,190 +84,154 @@ function PreemptionAnimation({ event, onDone }) {
   );
 }
 
-// ── Sparkline ────────────────────────────────────────────────────────────────
- function Sparkline({ data = [], color }) {
-  if (!data || data.length < 2) return null;
-
-  const max = Math.max(...data, 1);
-  const w = 80, h = 28;
-
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = h - (v / max) * h;
-    return `${x},${y}`;
-  }).join(" ");
-
-  return (
-    <svg width={w} height={h} style={{ display: "block" }}>
-      <polyline
-        points={pts}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity="0.8"
-      />
-      {(() => {
-        const last = data[data.length - 1];
-        const x = w;
-        const y = h - (last / max) * h;
-        return <circle cx={x} cy={y} r="2.5" fill={color} />;
-      })()}
-    </svg>
-  );
-}
-// ── Main Panel ────────────────────────────────────────────────────────────────
 export default function PreemptionPanel() {
-  const [events,      setEvents]      = useState([]);
-  const [animQueue,   setAnimQueue]   = useState([]);
-  const [history,     setHistory]     = useState([]); // sparkline counts per tick
-  const [nodeStats,   setNodeStats]   = useState({});
+  const [events,    setEvents]    = useState([]);
+  const [animQueue, setAnimQueue] = useState([]);
+  const [nodeStats, setNodeStats] = useState({});
+  const [history,   setHistory]   = useState([]);
   const prevIds = useRef(new Set());
 
-  // ── Fetch & diff ────────────────────────────────────────────────────────────
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetch = async () => {
       try {
         const res = await axios.get("http://127.0.0.1:8000/events");
-        const data = res.data;
+        const data = Array.isArray(res.data) ? res.data : [];
         setEvents(data);
 
-        // Detect new events by unique key
+        // Detect new events
         const newOnes = data.filter(e => {
           const key = `${e.old_task}-${e.new_task}-${e.node}`;
           return !prevIds.current.has(key);
         });
-
         newOnes.forEach(e => {
-          const key = `${e.old_task}-${e.new_task}-${e.node}`;
-          prevIds.current.add(key);
+          prevIds.current.add(`${e.old_task}-${e.new_task}-${e.node}`);
         });
-
         if (newOnes.length > 0) {
           setAnimQueue(prev => [
             ...prev,
-            ...newOnes.map(e => ({ ...e, animId: `${e.old_task}-${Date.now()}-${Math.random()}` }))
+            ...newOnes.map(e => ({
+              ...e,
+              animId: `${e.old_task}-${Date.now()}-${Math.random()}`,
+            })),
           ].slice(-3));
         }
 
-        // Sparkline history
+        // History
         setHistory(prev => [...prev.slice(-30), data.length]);
 
         // Per-node stats
         const stats = {};
-        data.forEach(e => {
-          stats[e.node] = (stats[e.node] || 0) + 1;
-        });
+        data.forEach(e => { stats[e.node] = (stats[e.node] || 0) + 1; });
         setNodeStats(stats);
 
-      } catch (err) {
-        console.error("Events API Error:", err);
-      }
+      } catch { /* silent */ }
     };
 
-    fetchEvents();
-    const interval = setInterval(fetchEvents, 2000);
-    return () => clearInterval(interval);
+    fetch();
+    const t = setInterval(fetch, 2000);
+    return () => clearInterval(t);
   }, []);
 
-  const removeAnim = (animId) => {
-    setAnimQueue(prev => prev.filter(e => e.animId !== animId));
-  };
+  const removeAnim = (id) => setAnimQueue(prev => prev.filter(e => e.animId !== id));
 
-  const nodeColors = { edge_1: "#00d68f", edge_2: "#0ea5e9", cloud: "#f59e0b" };
+  const NODE_COLORS = { edge_1: "#22d3ee", edge_2: "#3b82f6", cloud: "#f59e0b" };
 
   return (
     <div className="card">
-      {/* Header */}
       <div className="card-header">
-        <span className="card-title">
-          <span className="card-title-icon">⚡</span>
-          Preemption Events
-        </span>
+        <span className="card-title">⚡ Preemption Events</span>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           {events.length > 0 && (
             <span style={{
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: "11px",
-              color: "#8892a4"
+              fontFamily: "var(--font-mono)",
+              fontSize: "10px",
+              color: "var(--text-muted)",
             }}>
               {events.length} total
             </span>
           )}
           <span className="badge badge-amber">
-            <span className="pulse pulse-amber" style={{ width: 6, height: 6 }} />
+            <span className="pulse pulse-amber" />
             Live
           </span>
         </div>
       </div>
 
-      {/* Stats row */}
-      {events.length > 0 && (
+      {/* Per-node stats */}
+      {Object.keys(nodeStats).length > 0 && (
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
+          gridTemplateColumns: `repeat(${Object.keys(nodeStats).length}, 1fr)`,
           gap: "10px",
           marginBottom: "16px",
         }}>
-          {Object.entries(nodeStats).map(([node, count]) => (
-            <div key={node} style={{
-              background: "#0d1117",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: "8px",
-              padding: "10px 12px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}>
-              <div>
+          {Object.entries(nodeStats).map(([node, count]) => {
+            const color = NODE_COLORS[node] || "#8b5cf6";
+            return (
+              <div key={node} style={{
+                background: "var(--bg-surface)",
+                border: `1px solid ${color}20`,
+                borderRadius: "9px",
+                padding: "12px 14px",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+              }}>
                 <div style={{
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: "11px",
-                  color: nodeColors[node] || "#a78bfa",
-                  marginBottom: "2px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em"
-                }}>{node}</div>
-                <div style={{
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: "22px",
-                  fontWeight: 700,
-                  color: "#e2e8f0",
-                  lineHeight: 1,
-                }}>{count}</div>
+                  width: "32px", height: "32px",
+                  borderRadius: "8px",
+                  background: `${color}14`,
+                  border: `1px solid ${color}30`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "12px",
+                  color: color,
+                  flexShrink: 0,
+                }}>⚡</div>
+                <div>
+                  <div style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "20px",
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    lineHeight: 1,
+                  }}>{count}</div>
+                  <div style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "10px",
+                    color: color,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    marginTop: "2px",
+                  }}>{node}</div>
+                </div>
               </div>
-              <Sparkline
-                data={history.map(() => count)}
-                color={nodeColors[node] || "#a78bfa"}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* Live animation zone */}
+      {/* Active animations */}
       {animQueue.length > 0 && (
         <div style={{ marginBottom: "14px" }}>
           <div style={{
-            fontSize: "11px",
-            fontFamily: "'IBM Plex Mono', monospace",
-            color: "#f97316",
+            fontSize: "10px",
+            fontFamily: "var(--font-mono)",
+            color: "var(--neon-amber)",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
             marginBottom: "8px",
             display: "flex",
             alignItems: "center",
-            gap: "6px"
+            gap: "6px",
           }}>
-            <span className="pulse pulse-amber" style={{ width: 6, height: 6 }} />
+            <span className="pulse pulse-amber" />
             Active preemptions
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             {animQueue.map(e => (
-              <PreemptionAnimation
-                key={e.animId}
-                event={e}
-                onDone={() => removeAnim(e.animId)}
-              />
+              <PreemptionAnimation key={e.animId} event={e} onDone={() => removeAnim(e.animId)} />
             ))}
           </div>
         </div>
@@ -296,34 +245,27 @@ export default function PreemptionPanel() {
           alignItems: "center",
           justifyContent: "center",
           height: "100px",
-          color: "#4a5568",
+          color: "var(--text-muted)",
+          gap: "8px",
         }}>
-          <div style={{ fontSize: "22px", marginBottom: "8px" }}>⚡</div>
+          <div style={{ fontSize: "22px", opacity: 0.2 }}>⚡</div>
           <div style={{ fontSize: "13px" }}>No preemption events yet</div>
         </div>
       ) : (
-        <div>
+        <>
           <div style={{
-            fontSize: "11px",
-            fontFamily: "'IBM Plex Mono', monospace",
-            color: "#4a5568",
-            marginBottom: "8px",
+            fontSize: "10px",
+            fontFamily: "var(--font-mono)",
+            color: "var(--text-ghost)",
             textTransform: "uppercase",
-            letterSpacing: "0.06em"
+            letterSpacing: "0.08em",
+            marginBottom: "8px",
           }}>
             Event Log
           </div>
-
-          <div style={{
-            maxHeight: "260px",
-            overflowY: "auto",
-            display: "flex",
-            flexDirection: "column",
-            gap: "5px",
-            paddingRight: "4px",
-          }}>
+          <div style={{ maxHeight: "260px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "5px" }}>
             {[...events].reverse().map((e, i) => {
-              const nodeColor = nodeColors[e.node] || "#a78bfa";
+              const nc = NODE_COLORS[e.node] || "#8b5cf6";
               return (
                 <div
                   key={i}
@@ -333,61 +275,47 @@ export default function PreemptionPanel() {
                     alignItems: "center",
                     gap: "10px",
                     padding: "8px 12px",
-                    borderRadius: "7px",
-                    background: "#0d1117",
-                    border: "1px solid rgba(255,255,255,0.05)",
+                    borderRadius: "8px",
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border-faint)",
                     transition: "border-color 0.2s",
+                    cursor: "default",
                   }}
-                  onMouseEnter={e2 => e2.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"}
-                  onMouseLeave={e2 => e2.currentTarget.style.borderColor = "rgba(255,255,255,0.05)"}
+                  onMouseEnter={ev => ev.currentTarget.style.borderColor = "var(--border-mid)"}
+                  onMouseLeave={ev => ev.currentTarget.style.borderColor = "var(--border-faint)"}
                 >
-                  {/* Icon */}
                   <div style={{
-                    width: "26px", height: "26px",
+                    width: "24px", height: "24px",
                     borderRadius: "6px",
-                    background: "rgba(249,115,22,0.12)",
-                    border: "1px solid rgba(249,115,22,0.25)",
+                    background: "rgba(245,158,11,0.10)",
+                    border: "1px solid rgba(245,158,11,0.22)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "12px",
+                    fontSize: "11px", color: "var(--neon-amber)",
                     flexShrink: 0,
                   }}>⇄</div>
 
-                  {/* Task swap */}
                   <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
                     <span style={{
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      fontSize: "12px",
-                      color: "#f43f5e",
-                      background: "rgba(244,63,94,0.1)",
-                      padding: "1px 7px",
-                      borderRadius: "4px",
-                      whiteSpace: "nowrap",
+                      fontFamily: "var(--font-mono)", fontSize: "11px",
+                      color: "var(--neon-red)", background: "rgba(239,68,68,0.08)",
+                      padding: "1px 6px", borderRadius: "3px", whiteSpace: "nowrap",
                     }}>
-                      {e.old_task.slice(0, 8)}
+                      {(e.old_task || "").slice(0, 10)}
                     </span>
-                    <span style={{ color: "#4a5568", fontSize: "12px" }}>→</span>
+                    <span style={{ color: "var(--text-ghost)", fontSize: "11px" }}>→</span>
                     <span style={{
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      fontSize: "12px",
-                      color: "#00d68f",
-                      background: "rgba(0,214,143,0.1)",
-                      padding: "1px 7px",
-                      borderRadius: "4px",
-                      whiteSpace: "nowrap",
+                      fontFamily: "var(--font-mono)", fontSize: "11px",
+                      color: "var(--neon-green)", background: "rgba(16,185,129,0.08)",
+                      padding: "1px 6px", borderRadius: "3px", whiteSpace: "nowrap",
                     }}>
-                      {e.new_task.slice(0, 8)}
+                      {(e.new_task || "").slice(0, 10)}
                     </span>
                   </div>
 
-                  {/* Node */}
                   <span style={{
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontSize: "11px",
-                    padding: "2px 8px",
-                    borderRadius: "4px",
-                    background: `${nodeColor}15`,
-                    border: `1px solid ${nodeColor}35`,
-                    color: nodeColor,
+                    fontFamily: "var(--font-mono)", fontSize: "10px",
+                    padding: "2px 7px", borderRadius: "4px",
+                    background: `${nc}12`, border: `1px solid ${nc}28`, color: nc,
                     flexShrink: 0,
                   }}>
                     {e.node}
@@ -396,7 +324,7 @@ export default function PreemptionPanel() {
               );
             })}
           </div>
-        </div>
+        </>
       )}
     </div>
   );
